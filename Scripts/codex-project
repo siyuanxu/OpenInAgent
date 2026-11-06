@@ -1,0 +1,470 @@
+#!/bin/zsh
+# Create a lightweight Codex project in an existing directory or a new child directory.
+
+emulate -LR zsh
+setopt err_return no_unset pipe_fail
+
+PROGRAM_NAME="openinagent"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  openinagent open [DIRECTORY] [--agent AGENT]
+  openinagent init [DIRECTORY] [options]
+  openinagent new NAME [PARENT_DIRECTORY] [options]
+
+Options:
+  --description TEXT       Project's one-sentence description.
+  --type TYPE              generic, research, engineering, writing, or software.
+  --file FORMAT            agents (default), soul, or both.
+  --agent AGENT            codex (default), dsh (DeepSeek Harness desktop),
+                           hermes, zcode, kimi, or terminal (macOS Terminal).
+  --dialog                 Use macOS dialogs instead of terminal questions.
+  --no-start-session       Only create files; do not register/open the desktop Local Project.
+  --replace                Replace an existing generated target file.
+  -h, --help               Show this help.
+
+Examples:
+  openinagent open . --agent zcode
+  openinagent open . --agent terminal
+  openinagent init
+  openinagent init ~/Documents/示例项目 --type engineering
+  openinagent new "示例研究项目" ~/Documents --description "整理研究资料并形成项目计划" --type research
+EOF
+}
+
+fail() {
+  print -u2 -- "$PROGRAM_NAME: $*"
+  exit 1
+}
+
+confirm_dialog() {
+  /usr/bin/osascript <<'APPLESCRIPT'
+tell application "System Events"
+  set chosenType to choose from list {"工程与科研资料", "软件开发", "文稿与申报", "通用项目", "自定义"} with title "创建 Codex 项目" with prompt "选择项目类型：" default items {"通用项目"} OK button name "下一步" cancel button name "取消"
+  if chosenType is false then error number -128
+  set chosenType to item 1 of chosenType
+  display dialog "用一句话说明这个项目要完成什么：" with title "创建 Codex 项目" default answer "" buttons {"取消", "下一步"} default button "下一步" cancel button "取消"
+  set projectDescription to text returned of result
+  set targetKind to choose from list {"AGENTS.md（推荐，Codex 会自动读取）", "SOUL.md（项目说明，供人阅读）", "两者都创建"} with title "创建 Codex 项目" with prompt "选择要创建的文件：" default items {"AGENTS.md（推荐，Codex 会自动读取）"} OK button name "创建" cancel button name "取消"
+  if targetKind is false then error number -128
+  return chosenType & linefeed & projectDescription & linefeed & (item 1 of targetKind)
+end tell
+APPLESCRIPT
+}
+
+choose_terminal() {
+  local type_choice file_choice
+  print -u2 "选择项目类型："
+  print -u2 "  1) 工程与科研资料"
+  print -u2 "  2) 软件开发"
+  print -u2 "  3) 文稿与申报"
+  print -u2 "  4) 通用项目"
+  print -u2 "  5) 自定义"
+  while true; do
+    print -u2 -n "请输入 1–5： "
+    IFS= read -r type_choice
+    case "$type_choice" in
+      1) selected_type="工程与科研资料"; break ;;
+      2) selected_type="软件开发"; break ;;
+      3) selected_type="文稿与申报"; break ;;
+      4) selected_type="通用项目"; break ;;
+      5) selected_type="自定义"; break ;;
+      *) print -u2 "请输入 1–5。" ;;
+    esac
+  done
+  print -u2 -n "用一句话说明这个项目要完成什么： "
+  IFS= read -r selected_description
+  print -u2 "选择要创建的文件："
+  print -u2 "  1) AGENTS.md（推荐）"
+  print -u2 "  2) SOUL.md（项目说明）"
+  print -u2 "  3) 两者都创建"
+  while true; do
+    print -u2 -n "请输入 1–3： "
+    IFS= read -r file_choice
+    case "$file_choice" in
+      1) selected_file="AGENTS.md（推荐）"; break ;;
+      2) selected_file="SOUL.md（项目说明）"; break ;;
+      3) selected_file="两者都创建"; break ;;
+      *) print -u2 "请输入 1–3。" ;;
+    esac
+  done
+  print -r -- "$selected_type"$'\n'"$selected_description"$'\n'"$selected_file"
+}
+
+normalize_type() {
+  case "$1" in
+    "工程与科研资料"|research) print research ;;
+    "软件开发"|software) print software ;;
+    "文稿与申报"|writing) print writing ;;
+    "通用项目"|generic) print generic ;;
+    "自定义") print generic ;;
+    engineering) print engineering ;;
+    *) fail "不支持的项目类型：$1" ;;
+  esac
+}
+
+normalize_file() {
+  case "$1" in
+    agents|"AGENTS.md（推荐，Codex 会自动读取）"|"AGENTS.md（推荐）") print agents ;;
+    soul|"SOUL.md（项目说明，供人阅读）"|"SOUL.md（项目说明）") print soul ;;
+    both|"两者都创建") print both ;;
+    *) fail "不支持的文件类型：$1" ;;
+  esac
+}
+
+template_rules() {
+  case "$1" in
+    research)
+      cat <<'EOF'
+- 先区分原始事实、分析推断和待核实事项；不要把缺失资料写成确定结论。
+- 保护原始资料：结果、摘录和图件写入独立工作目录，不覆盖源文件。
+- 引用、数据、单位、范围和适用条件须可追溯；对外结论先说明证据边界。
+EOF
+      ;;
+    engineering)
+      cat <<'EOF'
+- 先核对合同、现状资料、空间范围、数量和验收要求；不超范围承诺。
+- 区分照片可证事实、设计或规范要求、文件未规定事项和待调档证据。
+- 原始数据和分析结果分开保存；未确认边界、坐标或配准时，不下精确定性结论。
+EOF
+      ;;
+    writing)
+      cat <<'EOF'
+- 保留原稿事实、结构、数据和引用；只修改本次明确授权的内容。
+- 先给出修改思路或可核对版本，除非任务明确要求直接生成正式交付件。
+- 对外文本保持准确、简洁，避免把尚未确认的指标或承诺写成定稿。
+EOF
+      ;;
+    software)
+      cat <<'EOF'
+- 先阅读现有说明、配置和相关代码；避免无关重构或覆盖用户已有修改。
+- 实现后运行与变更相称的构建或测试，并明确真实验证范围。
+- 涉及删除、密钥、外部发布或全局配置时，先说明影响和可恢复性并取得确认。
+EOF
+      ;;
+    generic)
+      cat <<'EOF'
+- 先盘点现有材料和限制，再提出或执行修改；不把未知事项当作事实。
+- 未经明确授权，不覆盖原始资料、删除文件、外发信息或扩大任务范围。
+- 交付时说明完成内容、文件位置、验证方式和仍待确认的事项。
+EOF
+      ;;
+  esac
+}
+
+write_agents() {
+  local destination="$1" type="$2" description="$3" created_at
+  created_at=$(/bin/date '+%Y-%m-%d')
+  cat > "$destination" <<EOF
+# AGENTS.md
+
+## 项目简述
+
+$description
+
+## 工作约定
+
+$(template_rules "$type")
+
+## 执行方式
+
+- 开始前用简短中文确认目标、相关文件与成功标准；缺少会实质改变结果的选择时，再向用户提问。
+- 变更遵循最小必要原则，保留既有格式和可追溯性。
+- 交付前进行与风险相称的核查；无法确认的内容标记为“待核实”，不作推断。
+
+---
+
+由 OpenInAgent 于 $created_at 创建。项目类型：$type。
+EOF
+}
+
+write_soul() {
+  local destination="$1" type="$2" description="$3" created_at
+  created_at=$(/bin/date '+%Y-%m-%d')
+  cat > "$destination" <<EOF
+# 项目灵魂（SOUL）
+
+## 我们在做什么
+
+$description
+
+## 做事方式
+
+$(template_rules "$type")
+
+## 完成的样子
+
+成果可打开、可核对、可交付；事实、判断和待确认事项清楚分开。
+
+---
+
+这是一份项目说明，供团队和未来的自己阅读。支持项目指令的 Agent 应读取根目录的 \`AGENTS.md\`。
+创建日期：$created_at。
+EOF
+}
+
+uri_encode() {
+  /usr/bin/osascript -l JavaScript -e 'function run(argv) { return encodeURIComponent(argv[0]); }' "$1"
+}
+
+open_with_agent() {
+  local agent="$1" directory="$2" encoded_path encoded_agent
+  case "$agent" in
+    codex|dsh|hermes|zcode|kimi|terminal) ;;
+    *) fail "不支持的 Agent：$agent" ;;
+  esac
+  encoded_path="$(uri_encode "$directory")" || return 1
+  encoded_agent="$(uri_encode "$agent")" || return 1
+  /usr/bin/open "openinagent://launch?agent=$encoded_agent&path=$encoded_path"
+}
+
+find_desktop_local_projects() {
+  local state_file="$HOME/.codex/.codex-global-state.json"
+  [[ -r "$state_file" ]] || return 1
+  /usr/bin/osascript -l JavaScript -e '
+ObjC.import("Foundation");
+function run(argv) {
+  try {
+    var text = $.NSString.stringWithContentsOfFileEncodingError(
+      argv[0],
+      $.NSUTF8StringEncoding,
+      null
+    );
+    if (!text) return "";
+    var state = JSON.parse(ObjC.unwrap(text));
+    var projects = state["local-projects"] || {};
+    var matches = [];
+    for (var id in projects) {
+      var project = projects[id];
+      if ((project.rootPaths || []).indexOf(argv[1]) >= 0) {
+        matches.push(id + "\t" + (project.name || ""));
+      }
+    }
+    matches.sort();
+    return matches.join("\n");
+  } catch (_) {
+    return "";
+  }
+}' "$state_file" "$1"
+}
+
+wait_for_desktop_local_project() {
+  local root="$1" project_record=""
+  local attempts=0
+  while (( attempts < 40 )); do
+    project_record="$(find_desktop_local_projects "$root" 2>/dev/null || true)"
+    if [[ -n "$project_record" ]]; then
+      print -r -- "$project_record"
+      return 0
+    fi
+    /bin/sleep 0.25
+    attempts=$((attempts + 1))
+  done
+  return 1
+}
+
+open_start_session() {
+  local project_name prompt path_parameter prompt_parameter
+  local project_records_before="" project_records_after=""
+  local before_count=0 after_count=0 before_id="" after_id=""
+  local -a before_records after_records
+  project_name="${target_directory:t}"
+  prompt="这是「$project_name」的项目启动会话。
+
+项目目录：$target_directory
+任务描述：$description
+项目类型：$project_type
+
+  请先阅读项目根目录的说明文件，尤其是 AGENTS.md（如存在）。先用简短中文确认：你理解的目标、已知范围，以及建议的第一个可核对动作。未核对现有资料前，不要把推断写成事实结论。"
+
+  project_records_before="$(find_desktop_local_projects "$target_directory" 2>/dev/null || true)"
+  if [[ -n "$project_records_before" ]]; then
+    before_records=("${(@f)project_records_before}")
+    before_count=${#before_records[@]}
+    if (( before_count > 1 )); then
+      print -u2 -- "检测到同一路径对应 $before_count 个 Local Project；请先在 Codex 中清理重复项目：$target_directory"
+      return 2
+    fi
+    before_id="${before_records[1]%%$'\t'*}"
+  fi
+
+  path_parameter="$(uri_encode "$target_directory")" || return 1
+  prompt_parameter="$(uri_encode "$prompt")" || return 1
+  /usr/bin/open "codex://new?path=$path_parameter&prompt=$prompt_parameter" || return 1
+
+  registered_project_id=""
+  registered_project_status=""
+  project_records_after="$(wait_for_desktop_local_project "$target_directory" || true)"
+  if [[ -n "$project_records_after" ]]; then
+    after_records=("${(@f)project_records_after}")
+    after_count=${#after_records[@]}
+  fi
+  if (( after_count != 1 )); then
+    if (( after_count > 1 )); then
+      print -u2 -- "Codex 中出现了 $after_count 个同路径 Local Project，无法唯一确认创建结果：$target_directory"
+    else
+      print -u2 -- "Codex 已打开，但 10 秒内没有回读到该目录的 Local Project ID：$target_directory"
+    fi
+    return 2
+  fi
+  after_id="${after_records[1]%%$'\t'*}"
+  registered_project_id="$after_id"
+  if (( before_count == 1 )) && [[ "$before_id" == "$after_id" ]]; then
+    registered_project_status="reused"
+  else
+    registered_project_status="created"
+  fi
+}
+
+command="${1:-}"
+[[ -n "$command" ]] || { usage; exit 1; }
+case "$command" in
+  -h|--help) usage; exit 0 ;;
+  open|init|new) shift ;;
+  *) fail "未知命令：$command" ;;
+esac
+
+if [[ "$command" == "open" ]]; then
+  target_directory="$PWD"
+  if [[ "${1:-}" != --* && -n "${1:-}" ]]; then
+    target_directory="$1"
+    shift
+  fi
+  launch_agent="codex"
+  while (( $# > 0 )); do
+    case "$1" in
+      --agent) (( $# >= 2 )) || fail "--agent 需要名称。"; launch_agent="$2"; shift 2 ;;
+      -h|--help) usage; exit 0 ;;
+      *) fail "未知选项：$1" ;;
+    esac
+  done
+  [[ -d "$target_directory" ]] || fail "目录不存在：$target_directory"
+  target_directory="$(cd "$target_directory" && pwd -P)"
+  open_with_agent "$launch_agent" "$target_directory"
+  print -- "已把目录交给 OpenInAgent：$target_directory"
+  exit 0
+fi
+
+target_directory=""
+create_target_directory=false
+if [[ "$command" == "init" ]]; then
+  if [[ "${1:-}" != --* && -n "${1:-}" ]]; then
+    target_directory="$1"
+    shift
+  else
+    target_directory="$PWD"
+  fi
+else
+  [[ -n "${1:-}" && "${1:-}" != --* ]] || fail "new 需要项目名称。"
+  project_name="$1"
+  shift
+  [[ "$project_name" != */* && "$project_name" != "." && "$project_name" != ".." ]] || fail "项目名称不能包含路径分隔符。"
+  parent_directory="$PWD"
+  if [[ "${1:-}" != --* && -n "${1:-}" ]]; then
+    parent_directory="$1"
+    shift
+  fi
+  [[ -d "$parent_directory" ]] || fail "父目录不存在：$parent_directory"
+  parent_directory="$(cd "$parent_directory" && pwd -P)"
+  target_directory="$parent_directory/$project_name"
+  [[ ! -e "$target_directory" ]] || fail "目标已存在：$target_directory"
+  create_target_directory=true
+fi
+
+description=""
+project_type=""
+file_kind="agents"
+file_kind_explicit=false
+dialog_mode=false
+replace_existing=false
+start_session=true
+launch_agent="codex"
+registered_project_id=""
+registered_project_status=""
+
+while (( $# > 0 )); do
+  case "$1" in
+    --description) (( $# >= 2 )) || fail "--description 需要文本。"; description="$2"; shift 2 ;;
+    --type) (( $# >= 2 )) || fail "--type 需要类型。"; project_type="$2"; shift 2 ;;
+    --file) (( $# >= 2 )) || fail "--file 需要格式。"; file_kind="$2"; file_kind_explicit=true; shift 2 ;;
+    --agent) (( $# >= 2 )) || fail "--agent 需要名称。"; launch_agent="$2"; shift 2 ;;
+    --dialog) dialog_mode=true; shift ;;
+    --no-start-session) start_session=false; shift ;;
+    --replace) replace_existing=true; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "未知选项：$1" ;;
+  esac
+done
+
+if [[ "$create_target_directory" == false ]]; then
+  [[ -d "$target_directory" ]] || fail "目录不存在：$target_directory"
+  target_directory="$(cd "$target_directory" && pwd -P)"
+fi
+
+if [[ -z "$description" || -z "$project_type" ]]; then
+  if [[ "$dialog_mode" == true ]]; then
+    dialog_result="$(confirm_dialog)" || exit 0
+  elif [[ -t 0 ]]; then
+    dialog_result="$(choose_terminal)"
+  else
+    fail "非交互运行时请提供 --description 和 --type。"
+  fi
+  dialog_lines=("${(@f)dialog_result}")
+  chosen_type="${dialog_lines[1]:-}"
+  chosen_description="${dialog_lines[2]:-}"
+  chosen_file="${dialog_lines[3]:-}"
+  [[ -n "$project_type" ]] || project_type="$chosen_type"
+  [[ -n "$description" ]] || description="$chosen_description"
+  [[ "$file_kind_explicit" == true ]] || file_kind="$chosen_file"
+fi
+
+description="${description//$'\n'/ }"
+[[ -n "${description//[[:space:]]/}" ]] || fail "项目简述不能为空。"
+project_type="$(normalize_type "$project_type")"
+file_kind="$(normalize_file "$file_kind")"
+case "$launch_agent" in
+  codex|dsh|hermes|zcode|kimi|terminal) ;;
+  *) fail "不支持的 Agent：$launch_agent" ;;
+esac
+
+if [[ "$create_target_directory" == true ]]; then
+  [[ ! -e "$target_directory" ]] || fail "目标已存在：$target_directory"
+  /bin/mkdir "$target_directory"
+fi
+
+targets=()
+[[ "$file_kind" == agents || "$file_kind" == both ]] && targets+=("$target_directory/AGENTS.md")
+[[ "$file_kind" == soul || "$file_kind" == both ]] && targets+=("$target_directory/SOUL.md")
+
+for destination in "${targets[@]}"; do
+  [[ ! -e "$destination" || "$replace_existing" == true ]] || fail "文件已存在：$destination（需要替换请加 --replace）"
+done
+
+for destination in "${targets[@]}"; do
+  case "$destination" in
+    */AGENTS.md) write_agents "$destination" "$project_type" "$description" ;;
+    */SOUL.md) write_soul "$destination" "$project_type" "$description" ;;
+  esac
+  print -- "已创建：$destination"
+done
+
+print -- "Agent 项目已就绪：$target_directory"
+
+if [[ "$start_session" == true ]]; then
+  if [[ "$launch_agent" != "codex" ]]; then
+    open_with_agent "$launch_agent" "$target_directory"
+    print -- "已用 $launch_agent 打开项目目录。任务简述已写入项目说明；只有 Codex 入口支持经验证的启动会话预填。"
+  elif open_start_session; then
+    if [[ "$registered_project_status" == "reused" ]]; then
+      print -- "已验证并复用桌面端 Local Project：$registered_project_id"
+    else
+      print -- "已验证桌面端 Local Project：$registered_project_id"
+    fi
+    print -- "项目启动消息已预填；核对后按回车发送，即成为本次初始化的项目启动任务。"
+  else
+    open_status=$?
+    print -u2 -- "说明文件已创建，但桌面端 Local Project 没有通过唯一 ID 验证。"
+    exit "$open_status"
+  fi
+fi

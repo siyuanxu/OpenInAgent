@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>zh_CN</string>
+    <key>CFBundleDisplayName</key>
+    <string>OpenInAgent</string>
+    <key>CFBundleExecutable</key>
+    <string>OpenInAgent</string>
+    <key>CFBundleIdentifier</key>
+    <string>org.openinagent.OpenInAgent</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>OpenInAgent</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>org.openinagent.OpenInAgent.open</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>openinagent</string>
+            </array>
+        </dict>
+    </array>
+    <key>CFBundleShortVersionString</key>
+    <string>0.0.0-dev</string>
+    <key>CFBundleVersion</key>
+    <string>0</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon.icns</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.developer-tools</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>OpenInAgent 需要读取你主动操作的 Finder 当前目录，并在选择 Kimi 时打开 Terminal。</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 OpenInAgent contributors. All rights reserved.</string>
+</dict>
+</plist>
