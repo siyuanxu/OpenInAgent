@@ -18,7 +18,8 @@ Options:
   --type TYPE              generic, research, engineering, writing, or software.
   --file FORMAT            agents (default), soul, or both.
   --agent AGENT            codex (default), dsh (DeepSeek Harness desktop),
-                           hermes, zcode, kimi, or terminal (macOS Terminal).
+                           claude (Claude Desktop), hermes, zcode, kimi,
+                           or terminal (macOS Terminal).
   --dialog                 Use macOS dialogs instead of terminal questions.
   --no-start-session       Only create files; do not register/open the desktop Local Project.
   --replace                Replace an existing generated target file.
@@ -211,7 +212,7 @@ uri_encode() {
 open_with_agent() {
   local agent="$1" directory="$2" encoded_path encoded_agent
   case "$agent" in
-    codex|dsh|hermes|zcode|kimi|terminal) ;;
+    codex|dsh|claude|hermes|zcode|kimi|terminal) ;;
     *) fail "不支持的 Agent：$agent" ;;
   esac
   encoded_path="$(uri_encode "$directory")" || return 1
@@ -424,7 +425,7 @@ description="${description//$'\n'/ }"
 project_type="$(normalize_type "$project_type")"
 file_kind="$(normalize_file "$file_kind")"
 case "$launch_agent" in
-  codex|dsh|hermes|zcode|kimi|terminal) ;;
+  codex|dsh|claude|hermes|zcode|kimi|terminal) ;;
   *) fail "不支持的 Agent：$launch_agent" ;;
 esac
 

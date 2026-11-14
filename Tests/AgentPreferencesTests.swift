@@ -18,7 +18,12 @@ enum AgentPreferencesTests {
                                   domain as CFString, kCFPreferencesCurrentUser, kCFPreferencesAnyHost)
             CFPreferencesSynchronize(domain as CFString, kCFPreferencesCurrentUser, kCFPreferencesAnyHost)
         }
-        precondition(preferences.visibleAgents == [.codex, .dsh, .terminal])
+        precondition(preferences.visibleAgents == [.codex, .dsh, .claude, .terminal])
+        // An existing selection must not silently enable newly added entries.
+        try preferences.save([.codex, .dsh, .terminal])
+        try readInNewProcess(domain, expected: "codex,dsh,terminal")
+        try preferences.save([.claude, .claude, .terminal])
+        try readInNewProcess(domain, expected: "claude,terminal")
         try preferences.save([.terminal, .hermes, .hermes])
         precondition(preferences.visibleAgents == [.hermes, .terminal])
         try readInNewProcess(domain, expected: "hermes,terminal")
@@ -30,8 +35,8 @@ enum AgentPreferencesTests {
         CFPreferencesSynchronize(domain as CFString, kCFPreferencesCurrentUser, kCFPreferencesAnyHost)
         precondition(preferences.visibleAgents == [.codex, .kimi])
         try preferences.save(AgentPreferences.defaultVisibleAgents)
-        try readInNewProcess(domain, expected: "codex,dsh,terminal")
-        print("PASS: defaults, deduplication, independent process, empty selection, unknown identifiers, restore")
+        try readInNewProcess(domain, expected: "codex,dsh,claude,terminal")
+        print("PASS: defaults, existing selection, Claude toggle persistence, deduplication, independent process, empty selection, unknown identifiers, restore")
     }
 
     private static func readInNewProcess(_ domain: String, expected: String) throws {

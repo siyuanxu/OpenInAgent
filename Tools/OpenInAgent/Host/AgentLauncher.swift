@@ -43,6 +43,17 @@ enum AgentLauncher {
                     ? "已安装，可把目录加入工作区列表并唤醒桌面端"
                     : "未检测到 DSH 桌面端（DeepSeek Harness）"
             )
+        case .claude:
+            let available = NSWorkspace.shared.urlForApplication(
+                withBundleIdentifier: "com.anthropic.claudefordesktop"
+            ) != nil
+            return AgentAvailability(
+                kind: kind,
+                isAvailable: available,
+                detail: available
+                    ? "已安装，将文件夹交给桌面端；首次访问需在 Claude 中授权"
+                    : "未检测到 Claude Desktop，请安装支持打开文件夹的新版桌面端"
+            )
         case .zcode:
             let available = applicationCanOpen(scheme: "zcode", host: "workspace")
             return AgentAvailability(
@@ -104,6 +115,14 @@ enum AgentLauncher {
                 ? "已把“\(result.title)”加入 DSH 桌面端工作区列表并唤醒 DSH；请在左侧点一下该工作区开始会话。"
                 : "DSH 桌面端已有工作区“\(result.title)”；已唤醒 DSH，请在左侧点一下该工作区。"
 
+        case .claude:
+            try openDirectory(
+                normalized,
+                applicationBundleIdentifier: "com.anthropic.claudefordesktop",
+                displayName: "Claude Desktop"
+            )
+            return "已把“\(normalized.lastPathComponent)”交给 Claude Desktop；如提示文件夹访问权限，请在 Claude 中确认。"
+
         case .zcode:
             try openURL(
                 scheme: "zcode",
@@ -139,17 +158,26 @@ enum AgentLauncher {
             return "已在 Terminal 中用 Kimi 打开“\(normalized.lastPathComponent)”。"
 
         case .terminal:
-            try openDirectoryInSystemTerminal(normalized)
+            try openDirectory(
+                normalized,
+                applicationBundleIdentifier: "com.apple.Terminal",
+                displayName: "系统终端"
+            )
             return "已在系统终端中打开“\(normalized.lastPathComponent)”。"
         }
     }
 
-    private static func openDirectoryInSystemTerminal(_ directory: URL) throws {
-        // Terminal accepts directory documents. Pass the path as an argument,
+    private static func openDirectory(
+        _ directory: URL,
+        applicationBundleIdentifier: String,
+        displayName: String
+    ) throws {
+        // These desktop apps accept directory documents through Launch Services.
+        // Pass the path as an argument,
         // without interpreting it as shell code or requiring Apple Events access.
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        process.arguments = ["-b", "com.apple.Terminal", directory.path]
+        process.arguments = ["-b", applicationBundleIdentifier, directory.path]
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
         let errorPipe = Pipe()
@@ -157,7 +185,7 @@ enum AgentLauncher {
         do {
             try process.run()
         } catch {
-            throw AgentLaunchError.launchFailed("无法启动系统终端：\(error.localizedDescription)")
+            throw AgentLaunchError.launchFailed("无法启动\(displayName)：\(error.localizedDescription)")
         }
         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
@@ -165,7 +193,7 @@ enum AgentLauncher {
             let detail = String(data: errorData, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             throw AgentLaunchError.launchFailed(
-                detail.isEmpty ? "系统终端未能打开所选目录。" : "系统终端未能打开所选目录：\(detail)"
+                detail.isEmpty ? "\(displayName)未能打开所选目录。" : "\(displayName)未能打开所选目录：\(detail)"
             )
         }
     }

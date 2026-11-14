@@ -348,7 +348,7 @@ final class MainViewController: NSViewController, NSTextFieldDelegate {
         if agent.launchesInBackground {
             setWorking(true)
             showResult(
-                agent == .dsh ? "正在连接 DSH 桌面端并添加工作区…" : "正在系统终端中打开目录…",
+                agent == .dsh ? "正在连接 DSH 桌面端并添加工作区…" : "正在\(agent.displayName)中打开目录…",
                 isError: false
             )
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in

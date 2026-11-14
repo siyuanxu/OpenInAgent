@@ -1,8 +1,8 @@
 # OpenInAgent
 
-从 macOS Finder 当前目录打开 Codex、DeepSeek Harness（DSH）、终端或其他本地 Agent。
+从 macOS Finder 当前目录打开 Codex、DeepSeek Harness（DSH）、Claude Desktop、终端或其他本地 Agent。
 
-默认显示 **Codex、DSH、终端**。点击 **显示设置…** 可启用或隐藏 Hermes、ZCode、Kimi 等入口，选择会自动保存，并同步到工具栏、本地右键菜单和主窗口。
+新安装默认显示 **Codex、DSH、Claude Desktop、终端**。点击 **显示设置…** 可启用或隐藏任意入口，选择会自动保存，并同步到工具栏、本地右键菜单和主窗口。升级保留已保存的选择；已有设置的用户可在此勾选 Claude Desktop。
 
 ## 安装
 
@@ -28,12 +28,15 @@
 | --- | --- |
 | Codex | 将目录交给 Codex 桌面端；初始化可预填“项目启动会话”，需用户核对后发送。 |
 | DSH | 登记到 DeepSeek Harness 桌面端的工作区列表并唤醒应用，进入工作区仍需点击侧栏。 |
+| Claude Desktop | 通过 macOS 原生“打开文件夹”入口唤醒桌面端，将目录带入新任务；首次访问由 Claude 询问文件夹权限。 |
 | 终端 | 使用 macOS 自带 Terminal，工作目录为所选目录。 |
 | Hermes | 调用 `hermes desktop --cwd`，需要已安装相应 CLI。 |
 | ZCode | 使用 `zcode://workspace/open` 入口。 |
 | Kimi | 在 Terminal 中从所选目录启动 `kimi`，需要已安装 Kimi Code CLI。 |
 
 Finder 调用成功后 OpenInAgent 自动退出，不打开主窗口。隐藏入口只影响界面，命令行显式指定的接口仍可使用。
+
+Claude Desktop 需要支持文件夹打开的新版桌面应用。本机已在 4.4212.0 验证目录选中与首次授权；具体进入 Claude 或 Code 界面由桌面端决定。本入口不调用 Claude Code CLI，不自动发送任务，也不创建云端 Project。
 
 ## 从源码构建
 
@@ -59,6 +62,7 @@ Scripts/test-openinagent.sh
 ```zsh
 openinagent open . --agent terminal
 openinagent open . --agent codex
+openinagent open . --agent claude
 openinagent init . --description "整理项目资料并制定执行计划" --type generic
 openinagent new "Example Project" ~/Documents --description "构建示例应用" --type software
 ```
