@@ -16,3 +16,11 @@ xcrun swiftc -module-cache-path "$test_root/ModuleCache" \
   "$project_dir/Tools/OpenInAgent/Shared/AgentPreferences.swift" \
   "$project_dir/Tests/AgentPreferencesTests.swift" -o "$test_root/preferences-tests"
 "$test_root/preferences-tests"
+xcrun swiftc -module-cache-path "$test_root/ModuleCache" \
+  -framework AppKit -framework Security \
+  "$project_dir/Tools/OpenInAgent/Shared/AgentPreferences.swift" \
+  "$project_dir/Tools/OpenInAgent/Host/AgentLauncher.swift" \
+  "$project_dir/Tools/OpenInAgent/Host/DSHWorkspaceBridge.swift" \
+  "$project_dir/Tools/OpenInAgent/Host/AntigravityWorkspaceBridge.swift" \
+  "$project_dir/Tests/AntigravityBridgeTests.swift" -o "$test_root/antigravity-tests"
+"$test_root/antigravity-tests"

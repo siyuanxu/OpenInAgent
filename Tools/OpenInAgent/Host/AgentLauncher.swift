@@ -8,6 +8,7 @@ struct AgentAvailability {
 }
 
 enum AgentLaunchError: LocalizedError {
+    case cancelled
     case unavailable(String)
     case invalidURL(String)
     case launchFailed(String)
@@ -15,12 +16,18 @@ enum AgentLaunchError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case .cancelled: return "已取消打开反重力。"
         case .unavailable(let message),
              .invalidURL(let message),
              .launchFailed(let message),
              .automationFailed(let message):
             return message
         }
+    }
+
+    var isCancelled: Bool {
+        if case .cancelled = self { return true }
+        return false
     }
 }
 
@@ -54,6 +61,10 @@ enum AgentLauncher {
                     ? "已安装，将文件夹交给桌面端；首次访问需在 Claude 中授权"
                     : "未检测到 Claude Desktop，请安装支持打开文件夹的新版桌面端"
             )
+        case .antigravity:
+            let available = AntigravityWorkspaceBridge.isInstalled
+            return AgentAvailability(kind: kind, isAvailable: available,
+                detail: available ? "已安装，可创建或复用目录项目；首次使用需允许本机接入" : "未检测到 Antigravity（反重力）桌面端")
         case .zcode:
             let available = applicationCanOpen(scheme: "zcode", host: "workspace")
             return AgentAvailability(
@@ -122,6 +133,12 @@ enum AgentLauncher {
                 displayName: "Claude Desktop"
             )
             return "已把“\(normalized.lastPathComponent)”交给 Claude Desktop；如提示文件夹访问权限，请在 Claude 中确认。"
+
+        case .antigravity:
+            let result = try AntigravityWorkspaceBridge.openWorkspace(normalized)
+            return result.created
+                ? "已创建反重力项目“\(result.title)”并打开；任务尚未发送。"
+                : "已打开已有反重力项目“\(result.title)”。"
 
         case .zcode:
             try openURL(

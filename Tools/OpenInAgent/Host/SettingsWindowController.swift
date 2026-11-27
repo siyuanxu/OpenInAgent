@@ -7,7 +7,7 @@ final class SettingsWindowController: NSWindowController {
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 460),
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 500),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -53,6 +53,9 @@ final class SettingsWindowController: NSWindowController {
         saveStatus.font = .systemFont(ofSize: 12)
         saveStatus.textColor = .secondaryLabelColor
         stack.addArrangedSubview(saveStatus)
+        let revokeAccess = NSButton(title: "撤销反重力本机接入许可", target: self,
+                                    action: #selector(revokeAntigravityAccess))
+        stack.addArrangedSubview(revokeAccess)
         contentView.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 28),
@@ -62,6 +65,17 @@ final class SettingsWindowController: NSWindowController {
             note.widthAnchor.constraint(equalTo: stack.widthAnchor),
             saveStatus.widthAnchor.constraint(equalTo: stack.widthAnchor)
         ])
+    }
+
+    @objc private func revokeAntigravityAccess() {
+        do {
+            try AntigravityWorkspaceBridge.revokeAccess()
+            saveStatus.stringValue = "已撤销，下次打开反重力时会重新询问。"
+            saveStatus.textColor = .secondaryLabelColor
+        } catch {
+            saveStatus.stringValue = error.localizedDescription
+            saveStatus.textColor = .systemRed
+        }
     }
 
     private func reloadSelection() {

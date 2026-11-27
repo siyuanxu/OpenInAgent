@@ -388,7 +388,7 @@ final class MainViewController: NSViewController, NSTextFieldDelegate {
                 .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
                 .joined(separator: "\n")
-            showResult(combined, isError: true)
+            showResult(combined, isError: (error as? AgentLaunchError)?.isCancelled != true)
         }
     }
 

@@ -5,13 +5,14 @@ enum AgentKind: String, CaseIterable {
     case codex
     case dsh
     case claude
+    case antigravity
     case hermes
     case zcode
     case kimi
     case terminal
 
     var launchesInBackground: Bool {
-        self == .dsh || self == .claude || self == .terminal
+        self == .dsh || self == .claude || self == .antigravity || self == .terminal
     }
 
     var displayName: String {
@@ -19,6 +20,7 @@ enum AgentKind: String, CaseIterable {
         case .codex: return "Codex"
         case .dsh: return "DSH"
         case .claude: return "Claude Desktop"
+        case .antigravity: return "Antigravity（反重力）"
         case .hermes: return "Hermes"
         case .zcode: return "ZCode"
         case .kimi: return "Kimi"
@@ -40,7 +42,7 @@ struct AgentPreferences {
     // This does not depend on a developer's signing identity or Team ID.
     static let preferencesDomain = "org.openinagent.OpenInAgent"
     static let visibleAgentsKey = "visibleAgentIdentifiers"
-    static let defaultVisibleAgents: [AgentKind] = [.codex, .dsh, .claude, .terminal]
+    static let defaultVisibleAgents: [AgentKind] = [.codex, .dsh, .claude, .antigravity, .terminal]
     static let shared = AgentPreferences(domain: preferencesDomain)
 
     let domain: String

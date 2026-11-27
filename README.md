@@ -1,8 +1,8 @@
 # OpenInAgent
 
-从 macOS Finder 当前目录打开 Codex、DeepSeek Harness（DSH）、Claude Desktop、终端或其他本地 Agent。
+从 macOS Finder 当前目录打开 Codex、DeepSeek Harness（DSH）、Claude Desktop、Antigravity（反重力）、终端或其他本地 Agent。
 
-新安装默认显示 **Codex、DSH、Claude Desktop、终端**。点击 **显示设置…** 可启用或隐藏任意入口，选择会自动保存，并同步到工具栏、本地右键菜单和主窗口。升级保留已保存的选择；已有设置的用户可在此勾选 Claude Desktop。
+新安装默认显示 **Codex、DSH、Claude Desktop、Antigravity（反重力）、终端**。点击 **显示设置…** 可启用或隐藏任意入口，选择会自动保存，并同步到工具栏、本地右键菜单和主窗口。升级保留已保存的选择；已有设置的用户可在此勾选新增入口。
 
 ## 安装
 
@@ -29,6 +29,7 @@
 | Codex | 将目录交给 Codex 桌面端；初始化可预填“项目启动会话”，需用户核对后发送。 |
 | DSH | 登记到 DeepSeek Harness 桌面端的工作区列表并唤醒应用，进入工作区仍需点击侧栏。 |
 | Claude Desktop | 通过 macOS 原生“打开文件夹”入口唤醒桌面端，将目录带入新任务；首次访问由 Claude 询问文件夹权限。 |
+| Antigravity（反重力） | 创建或复用对应目录的本机项目，并打开桌面端项目页面；不发送任务。首次使用需允许本机项目接入。 |
 | 终端 | 使用 macOS 自带 Terminal，工作目录为所选目录。 |
 | Hermes | 调用 `hermes desktop --cwd`，需要已安装相应 CLI。 |
 | ZCode | 使用 `zcode://workspace/open` 入口。 |
@@ -37,6 +38,8 @@
 Finder 调用成功后 OpenInAgent 自动退出，不打开主窗口。隐藏入口只影响界面，命令行显式指定的接口仍可使用。
 
 Claude Desktop 需要支持文件夹打开的新版桌面应用。本机已在 4.4212.0 验证目录选中与首次授权；具体进入 Claude 或 Code 界面由桌面端决定。本入口不调用 Claude Code CLI，不自动发送任务，也不创建云端 Project。
+
+Antigravity 接入适配桌面版 2.35.2 的本机项目接口。复用目录完全一致、只包含一个文件夹或 Git 文件夹且未归档的项目；否则创建独立项目。不会修改既有项目的权限、信任设置或会话。首次授权可在“显示设置…”中撤销。
 
 ## 从源码构建
 
@@ -63,6 +66,7 @@ Scripts/test-openinagent.sh
 openinagent open . --agent terminal
 openinagent open . --agent codex
 openinagent open . --agent claude
+openinagent open . --agent antigravity
 openinagent init . --description "整理项目资料并制定执行计划" --type generic
 openinagent new "Example Project" ~/Documents --description "构建示例应用" --type software
 ```
@@ -72,6 +76,8 @@ openinagent new "Example Project" ~/Documents --description "构建示例应用"
 OpenInAgent 不附带用户文件、聊天记录、登录凭据或偏好。项目说明使用本地模板生成，生成过程不调用模型；向所选 Agent 打开目录后，后续数据处理由对应 Agent 决定。
 
 DSH 集成使用本机桌面端接口：仅向经过进程校验的本地服务发送所选目录，并按该服务端口精确读取所需本地认证 Cookie，不保存到发布包或日志中。Codex 项目确认依赖当前桌面端的本地状态结构。这些集成并非相关厂商承诺稳定的公共 API，应用升级后可能需要适配。
+
+Antigravity 集成在用户允许后，仅从已核对的桌面端子进程读取 `ANTIGRAVITY_SERVER_CSRF_TOKEN` 临时连接令牌。只连接该进程的 `127.0.0.1` 监听端口，以当前安装包自带的服务证书为唯一信任根，拒绝重定向和代理，仅调用项目列表、项目元数据读取和项目创建接口。令牌仅在内存中用于本次连接，不写入偏好、文件或日志，不上传；不请求聊天内容。该接口同样可能随桌面端升级而变化。
 
 ## 授权状态
 

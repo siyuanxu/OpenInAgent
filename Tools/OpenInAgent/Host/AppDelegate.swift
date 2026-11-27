@@ -187,7 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         directory: URL
     ) {
         pendingExternalLaunches = max(0, pendingExternalLaunches - 1)
-        if case .failure(let error) = result {
+        if case .failure(let error) = result, (error as? AgentLaunchError)?.isCancelled != true {
             externalLaunchFailed = true
             mainViewController?.receiveFinderDirectory(directory, shouldOpen: false)
             showError(error.localizedDescription)

@@ -131,6 +131,7 @@ final class FinderSync: FIFinderSync {
         case .codex: return #selector(openCodex(_:))
         case .dsh: return #selector(openDSH(_:))
         case .claude: return #selector(openClaude(_:))
+        case .antigravity: return #selector(openAntigravity(_:))
         case .hermes: return #selector(openHermes(_:))
         case .zcode: return #selector(openZCode(_:))
         case .kimi: return #selector(openKimi(_:))
@@ -141,6 +142,7 @@ final class FinderSync: FIFinderSync {
     @IBAction func openCodex(_ sender: Any?) { openAgent("codex") }
     @IBAction func openDSH(_ sender: Any?) { openAgent("dsh") }
     @IBAction func openClaude(_ sender: Any?) { openAgent("claude") }
+    @IBAction func openAntigravity(_ sender: Any?) { openAgent("antigravity") }
     @IBAction func openHermes(_ sender: Any?) { openAgent("hermes") }
     @IBAction func openZCode(_ sender: Any?) { openAgent("zcode") }
     @IBAction func openKimi(_ sender: Any?) { openAgent("kimi") }

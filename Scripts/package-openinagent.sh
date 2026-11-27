@@ -52,8 +52,9 @@ OpenInAgent
 3. 在 Finder 选择“显示 → 自定工具栏…”，将 OpenInAgent 拖入工具栏。
 4. 在“显示设置…”中选择需要显示的入口，选择会自动保存。
 
-新安装默认显示 Codex、DSH、Claude Desktop 和终端；升级保留已有显示选择。
+新安装默认显示 Codex、DSH、Claude Desktop、Antigravity（反重力）和终端；升级保留已有显示选择。
 Claude Desktop 首次访问文件夹时会询问权限。OneDrive 目录请使用 Finder 工具栏入口。
+反重力首次使用会询问本机项目接入许可，可在显示设置中撤销。
 
 本包使用 ad-hoc 本地签名，不包含个人签名证书，未做 Apple 公证。
 首次从互联网下载并打开时，macOS 可能要求你在“隐私与安全性”中确认来源。

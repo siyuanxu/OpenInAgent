@@ -80,6 +80,7 @@ for architecture in "${architectures[@]}"; do
     "$source_dir/Shared/AgentPreferences.swift" \
     "$source_dir/Host/AgentLauncher.swift" \
     "$source_dir/Host/DSHWorkspaceBridge.swift" \
+    "$source_dir/Host/AntigravityWorkspaceBridge.swift" \
     "$source_dir/Host/AppDelegate.swift" \
     "$source_dir/Host/ExtensionStatus.swift" \
     "$source_dir/Host/FinderDirectoryResolver.swift" \
